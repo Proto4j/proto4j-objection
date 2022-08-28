@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2022 MatrixEditor
+ * Copyright (c) 2022 Proto4j
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
