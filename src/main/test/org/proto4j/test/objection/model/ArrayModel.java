@@ -1,11 +1,11 @@
 package org.proto4j.test.objection.model; //@date 27.08.2022
 
-import org.proto4j.objection.annotation.Serializable;
+import org.proto4j.objection.annotation.Serialize;
 import org.proto4j.objection.annotation.Transient;
 
 import java.util.Arrays;
 
-@Serializable
+@Serialize
 public class ArrayModel {
 
     // Using the Objection-Annotation @Transient to prevent this field from

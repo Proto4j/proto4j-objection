@@ -8,28 +8,41 @@
  * contains unsafe operations which is highly recommended to use.
  *
  * <h2>Object Serialization Structure</h2>
- * Every Object that is serialized contains different field declarations with
- * the following structure:
- * <pre>
- * ┌────────────────────────────────────────────────────────────┐
- * │ Field                                                      │
- * ├────────────┬────────────┬────────────────┬─────────────────┤
- * │ type: byte │ ord: short │ modifiers: int │ field_len: byte │
- * ├────────────┴──┬─────────┴────────────────┴─────────────────┤
- * │ field: byte[] │ value: byte[]                              │
- * └───────────────┴────────────────────────────────────────────┘
- * </pre>
+ * Every Object that should be serialized is wrapped into an
+ * {@link org.proto4j.objection.model.OClass} instance. It contains all relevant
+ * information for the serialization process.
  *
+ * In general, primitive types directly written to the stream as described in
+ * the {@link org.proto4j.objection.serial.NumberSerializer} class info. Yet, it
+ * is not possible to read multidimensional arrays, but Collections, Maps and
+ * simple arrays.The basic binary structure is the following:
  * <pre>
- * ┌─────────────────────────────────────────────────────────────┐
- * │ Class                                                       │
- * ├────────────────┬──────────────┬────────────────┬────────────┤
- * │ name_len: byte │ name: byte[] │ modifiers: int │ clsid: int │
- * ├────────────────┴──────────────┴────────────────┴────────────┤
- * │                       fields: byte[]                        │
- * └─────────────────────────────────────────────────────────────┘
+ * +------------------------------------------------+
+ * | OClass of type T                               |
+ * +---------------+----------------+---------------+
+ * | version: byte | name_len: byte | name: byte[]  |
+ * +---------------++---------+-----+---------------+
+ * | modifiers: int | id: int | field_count: int    |
+ * +----------------+---------+---------------------+
+ * | fields: OField[]                               |
+ * | +--------------------------------------------+ |
+ * | | Field1:                                    | |
+ * | +------------+---------------+---------------+ |
+ * | | type: byte | version: byte | namelen: byte | |
+ * | +------------+-+-------------+---------------+ |
+ * | | name: byte[] | value: byte[]               | |
+ * | +--------------+-----------------------------+ |
+ * | ...                                            |
+ * +------------------------------------------------+
  * </pre>
+ * For a more detailed review of each individual value structure please refer
+ * to the related {@link org.proto4j.objection.ObjectSerializer} implementation.
  *
  * @author MatrixEditor
+ * @version 0.2.0
+ * @see org.proto4j.objection.Objection
+ * @see org.proto4j.objection.ObjectSerializer
+ * @see org.proto4j.objection.Marshaller
+ * @see org.proto4j.objection.model.OClass
  **/
 package org.proto4j.objection;

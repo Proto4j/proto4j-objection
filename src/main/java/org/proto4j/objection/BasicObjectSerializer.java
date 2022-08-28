@@ -29,11 +29,17 @@ import java.io.IOException;
 
 public abstract class BasicObjectSerializer implements ObjectSerializer {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Object getInstance(Class<?> type, DataInput dataInput, OSerializationContext ctx) throws IOException {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean accept(Class<?> type) {
         return true;

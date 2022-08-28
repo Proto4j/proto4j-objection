@@ -22,25 +22,22 @@
  * SOFTWARE.
  */
 
-package org.proto4j.objection; //@date 27.08.2022
+package org.proto4j.objection.annotation;//@date 26.08.2022
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-public abstract class AbstractMarshaller<V> implements Marshaller<V> {
+/**
+ * Utility annotation used to indicate a class can be serialized with this
+ * API.
+ *
+ * @author MatrixEditor
+ * @version 0.2.0
+ */
+@Retention(RetentionPolicy.RUNTIME)
+@Target({ElementType.TYPE})
+public @interface Serialize {
 
-    private OSharedConfiguration configuration;
-
-    public AbstractMarshaller() {
-        this(Objection.getDefaultConfiguration());
-    }
-
-    // ENHANCEMENT: add nonNull()-check before setting the variable.
-    public AbstractMarshaller(OSharedConfiguration configuration) {this.configuration = configuration;}
-
-    public OSharedConfiguration getConfiguration() {
-        return configuration;
-    }
-
-    public void setConfiguration(OSharedConfiguration configuration) {
-        this.configuration = configuration;
-    }
 }

@@ -22,25 +22,16 @@
  * SOFTWARE.
  */
 
-package org.proto4j.objection; //@date 27.08.2022
+/**
+ * This module declaration ensures all components except these in package
+ * {@code org.proto4j.objection.internal} are exported.
+ */
+module proto4j.objection {
 
+    exports org.proto4j.objection;
+    exports org.proto4j.objection.annotation;
+    exports org.proto4j.objection.model;
+    exports org.proto4j.objection.serial;
 
-public abstract class AbstractMarshaller<V> implements Marshaller<V> {
-
-    private OSharedConfiguration configuration;
-
-    public AbstractMarshaller() {
-        this(Objection.getDefaultConfiguration());
-    }
-
-    // ENHANCEMENT: add nonNull()-check before setting the variable.
-    public AbstractMarshaller(OSharedConfiguration configuration) {this.configuration = configuration;}
-
-    public OSharedConfiguration getConfiguration() {
-        return configuration;
-    }
-
-    public void setConfiguration(OSharedConfiguration configuration) {
-        this.configuration = configuration;
-    }
+    provides org.proto4j.objection.Marshaller with org.proto4j.objection.BasicMarshaller;
 }

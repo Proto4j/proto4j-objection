@@ -22,25 +22,28 @@
  * SOFTWARE.
  */
 
-package org.proto4j.objection; //@date 27.08.2022
+package org.proto4j.objection.internal; //@date 26.08.2022
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
+import java.util.Objects;
+import java.util.Optional;
 
-public abstract class AbstractMarshaller<V> implements Marshaller<V> {
+public final class OReflection {
 
-    private OSharedConfiguration configuration;
+    private OReflection() {}
 
-    public AbstractMarshaller() {
-        this(Objection.getDefaultConfiguration());
+    public static <A extends Annotation> Optional<A> getAnnotation(AnnotatedElement element, Class<A> cls)
+            throws NullPointerException {
+        Objects.requireNonNull(element);
+        Objects.requireNonNull(cls);
+
+        A value = element.getAnnotation(cls);
+        return Optional.ofNullable(value);
     }
 
-    // ENHANCEMENT: add nonNull()-check before setting the variable.
-    public AbstractMarshaller(OSharedConfiguration configuration) {this.configuration = configuration;}
-
-    public OSharedConfiguration getConfiguration() {
-        return configuration;
-    }
-
-    public void setConfiguration(OSharedConfiguration configuration) {
-        this.configuration = configuration;
+    public static <A extends Annotation> boolean isPresent(AnnotatedElement element, Class<A> cls)
+            throws NullPointerException {
+        return getAnnotation(element, cls).isPresent();
     }
 }

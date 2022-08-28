@@ -1,8 +1,8 @@
 package org.proto4j.test.objection.model; //@date 27.08.2022
 
-import org.proto4j.objection.annotation.Serializable;
+import org.proto4j.objection.annotation.Serialize;
 
-@Serializable
+@Serialize
 public class Primitives {
 
     private int i;

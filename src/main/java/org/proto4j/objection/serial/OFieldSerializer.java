@@ -1,3 +1,27 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022 MatrixEditor
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.proto4j.objection.serial; //@date 25.08.2022
 
 import org.proto4j.objection.BasicObjectSerializer;
@@ -11,13 +35,27 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * A small wrapper for reading and writing {@link OField} objects into a binary
+ * format.
+ *
+ * @see OField
+ * @author MatrixEditor
+ * @version 0.2.0
+ */
 public class OFieldSerializer extends BasicObjectSerializer {
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean accept(Class<?> type) {
         return type == OField.class;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public void writeObject(DataOutput dataOutput, Object writableObject, OSerializationContext ctx) throws IOException {
         OField reference = (OField) writableObject;
@@ -35,10 +73,13 @@ public class OFieldSerializer extends BasicObjectSerializer {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Object getInstance(Class<?> type, DataInput dataInput, OSerializationContext ctx) throws IOException {
         // reference is null
-        byte ftype = dataInput.readByte();
+        byte ftype   = dataInput.readByte();
         byte version = dataInput.readByte();
 
         byte   name_len = dataInput.readByte();
@@ -63,7 +104,7 @@ public class OFieldSerializer extends BasicObjectSerializer {
             }
         }
 
-        ObjectSerializer sr = ctx.getClassInfo().getConfiguration().forType(field.getLinkedFieldType());
+        ObjectSerializer sr = ctx.getConfig().forType(field.getLinkedFieldType());
         if (sr != null) {
             field.setValue(sr.getInstance(field.getLinkedFieldType(), dataInput, ctx));
         }

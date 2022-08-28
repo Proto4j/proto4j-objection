@@ -1,3 +1,27 @@
+/*
+ * MIT License
+ *
+ * Copyright (c) 2022 MatrixEditor
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ */
+
 package org.proto4j.objection.serial; //@date 26.08.2022
 
 import org.proto4j.objection.BasicObjectSerializer;
@@ -12,16 +36,22 @@ import java.lang.reflect.Array;
 import java.lang.reflect.Modifier;
 import java.util.*;
 
+/**
+ * A utility class containing all sequence serializers. The types that can be
+ * serialized are: Arrays (one dimension), {@link Map}s and {@link Collection}s
+ *
+ * @author MatrixEditor
+ * @version 0.2.0
+ */
 public class SequenceSerializer {
-
 
     /**
      * <pre>
-     * ┌─────────────────────────────────────────────────────────────┐
-     * │ Array                                                       │
-     * ├──────────────────┬───────────────┬────────────────────┬─────┤
-     * │ dimensions: byte │ dim0_len: int │ dim0_values: byte[]│ ... │
-     * └──────────────────┴───────────────┴────────────────────┴─────┘
+     * ┌────────────────────────────────────────────────────────┐
+     * │ Array                                                  │
+     * ├──────────────────┬───────────────┬─────────────────────┤
+     * │ dimensions: byte │ dim0_len: int │ dim0_values: byte[] │
+     * └──────────────────┴───────────────┴─────────────────────┘
      * </pre>
      */
     public static class ArraySerializer extends BasicObjectSerializer {
@@ -92,30 +122,34 @@ public class SequenceSerializer {
         @Override
         public void writeObject(DataOutput dataOutput, Object writableObject, OSerializationContext ctx) throws IOException {
             Collection<?> collection = (Collection<?>) writableObject;
-            Object[] values = collection.toArray();
-
-            byte[] name = Collection.class.getName().getBytes();
-            dataOutput.writeByte(name.length);
-            dataOutput.write(name);
-            dataOutput.writeInt(values.length);
+            Object[]      values     = collection.toArray();
 
             if (values.length != 0) {
-                ObjectSerializer sr = ctx.getConfig().forType(values.getClass().getComponentType());
+                Class<?> c = values[0].getClass();
+
+                byte[] name = c.getName().getBytes();
+                dataOutput.writeByte(name.length);
+                dataOutput.write(name);
+                dataOutput.writeInt(values.length);
+
+                ObjectSerializer sr = ctx.getConfig().forType(c);
                 for (Object o : values) {
                     sr.writeObject(dataOutput, o, ctx);
                 }
+            } else {
+                dataOutput.writeByte(0);
             }
         }
 
         @Override
         public Object getInstance(Class<?> type, DataInput dataInput, OSerializationContext ctx) throws IOException {
-            byte len = dataInput.readByte();
-            byte[] name = new byte[len];
+            byte               len  = dataInput.readByte();
+            byte[]             name = new byte[len];
             Collection<Object> collection;
-            Class<?> componentType;
+            Class<?>           componentType = null;
 
             if (type.isInterface() || Modifier.isAbstract(type.getModifiers())) {
-                if (List.class.isAssignableFrom(type)) {
+                if (List.class.isAssignableFrom(type) || Collection.class.isAssignableFrom(type)) {
                     type = ArrayList.class;
                 } else if (Set.class.isAssignableFrom(type)) {
                     type = HashSet.class;
@@ -128,13 +162,12 @@ public class SequenceSerializer {
                 for (int i = 0; i < len; i++) {
                     name[i] = dataInput.readByte();
                 }
-                if (ctx.getConfig().isRegistered(name)) {
-                    //noinspection unchecked
-                    collection = (Collection<Object>) type.getDeclaredConstructor().newInstance();
-                    componentType = ctx.getConfig().forName(name);
-                } else throw new InvalidClassException("Unsafe Operation: Class not defined!");
 
-
+                if (len > 0) {
+                    componentType = Class.forName(new String(name));
+                }
+                //noinspection unchecked
+                collection    = (Collection<Object>) type.getDeclaredConstructor().newInstance();
             } catch (ReflectiveOperationException e) {
                 throw new InvalidClassException(e.getMessage());
 
@@ -143,11 +176,12 @@ public class SequenceSerializer {
                     name[i] = 0;
                 }
             }
-
-            int length = dataInput.readInt();
-            ObjectSerializer sr = ctx.getConfig().forType(componentType);
-            for (int i = 0; i < length; i++) {
-                collection.add(sr.getInstance(componentType, dataInput, ctx));
+            if (len > 0) {
+                int              length = dataInput.readInt();
+                ObjectSerializer sr     = ctx.getConfig().forType(componentType);
+                for (int i = 0; i < length; i++) {
+                    collection.add(sr.getInstance(componentType, dataInput, ctx));
+                }
             }
             return collection;
         }
@@ -173,26 +207,32 @@ public class SequenceSerializer {
 
         @Override
         public void writeObject(DataOutput dataOutput, Object writableObject, OSerializationContext ctx) throws IOException {
-            Map<?, ?> map = (Map<?, ?>) writableObject;
-            int size = map.size();
-            Class<?> keyType;
-            Class<?> valueType;
-            byte[] name = new byte[0];
-            int nameLength = 0;
+            Map<?, ?> map        = (Map<?, ?>) writableObject;
+            int       size       = map.size();
+            Class<?>  keyType;
+            Class<?>  valueType;
+            byte[]    name       = new byte[0];
+            int       nameLength = 0;
 
+            if (size == 0) {
+                dataOutput.writeByte(0);
+                dataOutput.writeByte(0);
+                dataOutput.writeInt(0);
+                return;
+            }
             try {
-                Object[] keys = map.keySet().toArray();
+                Object[] keys   = map.keySet().toArray();
                 Object[] values = map.values().toArray();
 
-                keyType = keys.getClass().getComponentType();
-                valueType = values.getClass().getComponentType();
+                keyType   = keys[0].getClass();
+                valueType = values[0].getClass();
 
-                name = keyType.getName().getBytes();
+                name       = keyType.getName().getBytes();
                 nameLength = name.length;
                 dataOutput.writeByte(nameLength);
                 dataOutput.write(name);
 
-                name = valueType.getName().getBytes();
+                name       = valueType.getName().getBytes();
                 nameLength = name.length;
                 dataOutput.writeByte(nameLength);
                 dataOutput.write(name);
@@ -218,13 +258,13 @@ public class SequenceSerializer {
         @Override
         public Object getInstance(Class<?> type, DataInput dataInput, OSerializationContext ctx) throws IOException {
             Map<Object, Object> map;
-            int size;
-            Class<?> keyType;
-            Class<?> valueType;
-            ObjectSerializer srK, srV;
+            int                 size;
+            Class<?>            keyType;
+            Class<?>            valueType;
+            ObjectSerializer    srK, srV;
 
             try {
-                keyType = getType(dataInput, ctx);
+                keyType   = getType(dataInput, ctx);
                 valueType = getType(dataInput, ctx);
 
                 if (type.isInterface() || Modifier.isAbstract(type.getModifiers())) {
@@ -232,10 +272,13 @@ public class SequenceSerializer {
                 }
 
                 //noinspection unchecked
-                map = (Map<Object, Object>) type.getDeclaredConstructor().newInstance();
+                map  = (Map<Object, Object>) type.getDeclaredConstructor().newInstance();
                 size = dataInput.readInt();
-                srK = ctx.getConfig().forType(keyType);
-                srV = ctx.getConfig().forType(valueType);
+                if (size == 0) {
+                    return map;
+                }
+                srK  = ctx.getConfig().forType(keyType);
+                srV  = ctx.getConfig().forType(valueType);
 
                 if (srK == null || srV == null) {
                     throw new IllegalArgumentException("Key or Value type can not be serialized!");
@@ -251,16 +294,15 @@ public class SequenceSerializer {
 
         private Class<?> getType(DataInput dataInput, OSerializationContext ctx)
                 throws IOException, ClassNotFoundException {
-            int nameLength = dataInput.readByte();
-            byte[] name = new byte[nameLength];
+            int    nameLength = dataInput.readByte();
+            if (nameLength == 0) return null;
+
+            byte[] name       = new byte[nameLength];
             for (int i = 0; i < nameLength; i++) {
                 name[i] = dataInput.readByte();
             }
 
-            if (!ctx.getConfig().isRegistered(name)) {
-                throw new InvalidClassException("Invalid serialized class: " + new String(name));
-            }
-            return ctx.getConfig().forName(name);
+            return Class.forName(new String(name));
         }
     }
 
@@ -275,13 +317,13 @@ public class SequenceSerializer {
         public MultiDimensionArraySerializer(Class<?> baseType) {
             this.baseType = baseType;
 
-            Class<?> type = baseType;
-            int amount = 1;
-            while (( type = type.getComponentType()).isArray()) {
+            Class<?> type   = baseType;
+            int      amount = 1;
+            while ((type = type.getComponentType()).isArray()) {
                 amount++;
             }
             this.componentType = type;
-            this.dimensions = amount;
+            this.dimensions    = amount;
         }
 
         @Override
@@ -305,8 +347,8 @@ public class SequenceSerializer {
                 dataOutput.writeInt(j);
             }
 
-            ObjectSerializer sr = ctx.getConfig().forType(componentType);
-            int len = Array.getLength(writableObject);
+            ObjectSerializer sr  = ctx.getConfig().forType(componentType);
+            int              len = Array.getLength(writableObject);
             writeArray(dataOutput, writableObject, len, sr, ctx);
         }
 
